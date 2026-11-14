@@ -15,6 +15,9 @@ Android, and the newer FM-1 units with the other flash chip.
 
 ## What's different from Erik37 1.3
 
+- **The release (damper) noise is off by default** (TONE & TOUCH, K4 *rel. noise*; Erik37 1.3 starts it at 40).
+  Turn K4 up to hear it. It only applies when there are no saved settings yet: an FM-1 that already ran Erik37 keeps
+  its own value.
 - **`app/big_screen.c`** (with `app/screen_mirror.c` / `.h`, MIT): while an app says hello over USB
   (`F0 7D 'F' 'S' 00/01/02 F7`, about once a second), each LCD rectangle also goes out as SysEx. Nobody asking:
   nothing is done (`bs_lcd` returns at once).

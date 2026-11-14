@@ -53,7 +53,7 @@ sustain is the strongest of the PEDAL jack, SEQ REC, MIDI and (when set) the mod
 | Page | K1 | K2 | K3 | K4 |
 | --- | --- | --- | --- | --- |
 | play | tone | room | reverb | tempo |
-| TONE & TOUCH | touch curve | brilliance | resonance (down past 0: off) | release noise (0 off .. 100, 40 at first) |
+| TONE & TOUCH | touch curve | brilliance | resonance (down past 0: off) | release noise (0 off .. 100, off at first) |
 | ROOM | room | size | amount | width |
 | PAD LAYER | pad level (0 off .. 100, off at first) | attack (0.02 .. 2 s) | release (0.1 .. 4 s) | tone (300 Hz .. 8 kHz) |
 | PEDALS & PADS | una corda depth | mod wheel (off, sustain) | pedal jack (auto, open, closed) | pad light (45, 60, 80, 100 %) |

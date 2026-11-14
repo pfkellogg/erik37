@@ -32,7 +32,7 @@ typedef struct {
 #define SF_WHEEL 1u
 #define SF_JACK_SH 1
 #define JACK_MODE() ((set.flags >> SF_JACK_SH) & 3u)
-#define RELNOISE_DEF 40                  /* 1.1 had 100 (-8 dB now) */
+#define RELNOISE_DEF 0                   /* off at first (big-screen branch; Erik37 1.3: 40; 1.1 had 100, -8 dB now) */
 #define LAY_ATT_DEF 55                   /* the pad layer's attack 0.25 s, release 0.9 s, tone 1.1 kHz */
 #define LAY_REL_DEF 60
 #define LAY_TONE_DEF 40

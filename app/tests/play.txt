@@ -278,10 +278,10 @@ expect metro 1
 tap PLAY
 wait 30
 expect metro 0
-# TONE & TOUCH's K4: the release noise, 0 (off) .. 100 in fives, 40 at first
+# TONE & TOUCH's K4: the release noise, 0 (off) .. 100 in fives, off at first
 tap RIGHT
 wait 30
-expect relnoise 40
+expect relnoise 0
 turn K4 -20
 wait 30
 expect relnoise 0
