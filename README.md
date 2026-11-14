@@ -2,6 +2,10 @@
 
 # Erik37
 
+> **This is the `big-screen` branch of a fork:** Erik37 with the FM-1 Big Screen mirror over USB, unofficial and
+> not reviewed by Erik37's author. See [BIG_SCREEN.md](BIG_SCREEN.md). The real Erik37 is
+> [genkigenki/erik37](https://github.com/genkigenki/erik37).
+
 A grand piano for the M-Vave SMK-37 (and the FM-1): a sampled concert grand with velocity layers, a key-by-key decay, dampers and
 their noise, the three pedals, sympathetic string resonance and four rooms. It is its own firmware, built on
 [fm1-base](https://github.com/charlesvestal/fm1-base) and [felucca-bsp](https://github.com/hugelton/felucca-bsp).

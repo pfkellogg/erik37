@@ -153,7 +153,17 @@ def toolchain():
     return Path(tc).resolve()
 
 
+# On a Mac without Docker: JIELI_WINE=<wine binary> runs JieLi's Windows toolchain (the same clang 4.0.1 for pi32v2)
+# from JIELI_WIN_BIN (its pi32/bin) instead of the Linux one in a container. (Patrick Kellogg's Big Screen build)
+WINE = os.environ.get("JIELI_WINE")
+WIN_TOOLS = {"pi32v2/bin/clang": "clang.exe", "pi32v2/bin/ld": "pi32v2-ld.exe",
+             "common/bin/objcopy": "llvm-objcopy.exe", "common/bin/objdump": "llvm-objdump.exe",
+             "common/bin/llvm-ar": "llvm-ar.exe", "common/bin/llvm-link": "llvm-link.exe"}
+
+
 def use_docker():
+    if WINE:
+        return False
     native = platform.system() == "Linux" and platform.machine() in ("x86_64", "AMD64")
     return os.environ.get("JIELI_DOCKER", "0" if native else "1") == "1"
 
@@ -195,7 +205,9 @@ def tc(tool, *args):
     rel = [str(Path(a).resolve().relative_to(ROOT)) if isinstance(a, Path) else a for a in args]
     if tool == "cc":                # the toolchain's cc wrapper needs python3; call clang directly
         tool, rel = "pi32v2/bin/clang", ["-target", "pi32v2", *rel]
-    if use_docker():
+    if WINE:
+        cmd = [WINE, str(Path(os.environ["JIELI_WIN_BIN"]) / WIN_TOOLS[tool]), *rel]
+    elif use_docker():
         cmd = ["docker", "exec", "-w", "/work", builder(), f"/opt/jieli/{tool}", *rel]
     else:
         cmd = [str(toolchain() / tool), *rel]
@@ -468,7 +480,7 @@ def build_app():
     # unreferenced functions (each in its own section: -ffunction-sections) are dropped: the DSP keeps
     # mono reference paths for the host tests that the firmware no longer calls. The BT libraries are LTO
     # bitcode: the linker needs the toolchain's LLVM plugin
-    lto = ["--plugin", "/opt/jieli/pi32v2/bin/LLVMgold.so" if use_docker() else str(toolchain() / "pi32v2/bin/LLVMgold.so"),
+    lto = ["--plugin", str(Path(os.environ["JIELI_WIN_BIN"]) / "LLVMgold.dll") if WINE else "/opt/jieli/pi32v2/bin/LLVMgold.so" if use_docker() else str(toolchain() / "pi32v2/bin/LLVMgold.so"),
            "--plugin-opt=mcpu=r3", "--plugin-opt=-pi32v2-large-program=true"] if BLE or WIFI else []
     ld = SRC / "device" / ("app_wifi.ld" if WIFI else "app.ld")
     if APP_SLOT != 0x8DFBC:             # another board's app slot (the SMK-37): the same script, its XIP length
