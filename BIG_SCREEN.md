@@ -1,7 +1,8 @@
 # Erik37 + FM-1 Big Screen (unofficial, work in progress)
 
-> **Unofficial, not reviewed by Erik37's author.** This branch is a proposal: I've asked genkigenki ([issue #12](https://github.com/genkigenki/erik37/issues/12)) whether they'd
-> like it in Erik37. Until they answer there's no download here, on purpose. Please don't build and pass it around.
+> **Unofficial, not reviewed by Erik37's author.** I asked genkigenki first ([issue #12](https://github.com/genkigenki/erik37/issues/12)),
+> then offered it as [pull request #13](https://github.com/genkigenki/erik37/pull/13) (branch `big-screen-pr`: the firmware only). The code
+> is public; there's no ready-made download here while the pull request is open. Watch it: [FM-1 Mirror: Sharper Text, Erik37's Damper Sound, and Coming to iPhone & iPad](https://youtu.be/S677yseRAsM).
 
 [Erik37](https://github.com/genkigenki/erik37), genkigenki's grand piano for the M-Vave SMK-37 and the M-VAVE FM-1,
 with the FM-1 Big Screen mirror added: the FM-1's screen shows big and live in
