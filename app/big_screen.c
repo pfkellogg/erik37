@@ -24,12 +24,88 @@ static uint16_t bs_hash[240][BS_NSEG];
 static uint8_t bs_redo;                          /* segments dropped: the app draws everything again */
 static uint32_t bs_redo_at;                      /* the last such redraw asked for */
 
-/* app.c app_sysex: a SysEx frame from USB (the bytes between F0 and F7); 1 = a hello, taken */
+/* Big Knobs, Key Lights and the remote presses (FM-1 Big Screen 1.3.23 on): the app turns the knobs (04 e n), sets
+ * MASTER (06 lo hi), presses buttons and keys (07 id down); the lit and glowing buttons and keys go to it (05). They
+ * go in through fm1-base's own remote (plat_fm1.c: remote.btn / keys / enc / master), the path tools/fm1_remote.py
+ * takes, so Erik37 sees them as the player's hands. Our ids: buttons 0 OCT- 1 OCT+ 2 FX .. 13 REC, keys 14 + k. */
+static uint32_t bs_btn, bs_keys;                 /* what the app holds down (let go when it stops asking) */
+static uint32_t bs_lit_b, bs_lit_k, bs_dim_b;    /* the lights as plat_leds set them (our ids) */
+static inline uint32_t bs_b_of(uint32_t id) { return id >= 2u ? id - 2u : 12u + id; }   /* our id -> B_* */
+static inline uint32_t bs_id_of(uint32_t b) { return b >= 12u ? b - 12u : b + 2u; }     /* B_* -> our id */
+void bs_lights(uint32_t buttons, uint32_t keys, uint32_t dim)   /* plat_fm1.c plat_leds */
+{
+    uint32_t b, lb = 0, db = 0;
+    for (b = 0; b < NB; b++) {
+        if (buttons >> b & 1u)
+            lb |= 1u << bs_id_of(b);
+        else if (dim >> b & 1u)
+            db |= 1u << bs_id_of(b);
+    }
+    bs_lit_b = lb;
+    bs_dim_b = db;
+    bs_lit_k = keys;
+}
+static void bs_panel_in(const uint8_t *p, uint32_t n)
+{
+    static const uint8_t EN[7] = {EN_SELECT, EN_ALGO, EN_K1, EN_K2, EN_K3, EN_K4, EN_PRESET};
+    if (n != 6u)
+        return;
+    if (p[3] == 4u && p[4] < 7u) {               /* a knob: n clicks, 7-bit signed */
+        int32_t d = p[5] & 127u;
+        remote.enc[EN[p[4]]] += d >= 64 ? d - 128 : d;
+    } else if (p[3] == 6u) {                     /* MASTER 0..1023 */
+        uint32_t v = (uint32_t)(p[4] & 127u) | (uint32_t)(p[5] & 127u) << 7;
+        remote.master = (int32_t)((v > 1023u ? 1023u : v) * 4096u / 1023u);
+    } else if (p[3] == 7u) {                     /* a button or key, down or up */
+        uint32_t id = p[4];
+        if (id < 14u) {
+            uint32_t bit = 1u << bs_b_of(id);
+            bs_btn = p[5] ? bs_btn | bit : bs_btn & ~bit;
+            remote.btn = p[5] ? remote.btn | bit : remote.btn & ~bit;
+        } else if (id < 14u + NKEYS) {
+            uint32_t bit = 1u << (id - 14u);
+            bs_keys = p[5] ? bs_keys | bit : bs_keys & ~bit;
+            remote.keys = p[5] ? remote.keys | bit : remote.keys & ~bit;
+        }
+    }
+}
+static void bs_panel_service(uint32_t now)       /* the lights out (on change, at most every 20 ms, and once a second) */
+{
+    static uint32_t sent_at, lb = ~0u, lk = ~0u, ld = ~0u;
+    uint8_t m[18];
+    if (!sm_on()) {
+        if (bs_btn | bs_keys) {                  /* the app went away: what it held is let go */
+            remote.btn &= ~bs_btn;
+            remote.keys &= ~bs_keys;
+            bs_btn = bs_keys = 0;
+        }
+        return;
+    }
+    if (now - sent_at < 20u || (bs_lit_b == lb && bs_lit_k == lk && bs_dim_b == ld && now - sent_at < 1000u))
+        return;
+    m[0] = 0xF0; m[1] = 0x7D; m[2] = 'F'; m[3] = 'S'; m[4] = 5;
+    m[5] = bs_lit_k & 127u; m[6] = bs_lit_k >> 7 & 127u; m[7] = bs_lit_k >> 14 & 127u; m[8] = bs_lit_k >> 21 & 127u;
+    m[9] = bs_lit_b & 127u; m[10] = bs_lit_b >> 7 & 127u;
+    m[11] = m[12] = m[13] = m[14] = 0;           /* glowing keys: none (Erik37 dims buttons only) */
+    m[15] = bs_dim_b & 127u; m[16] = bs_dim_b >> 7 & 127u; m[17] = 0xF7;
+    if (plat_sysex_try(m, 18) == 0) {
+        sent_at = now;
+        lb = bs_lit_b;
+        lk = bs_lit_k;
+        ld = bs_dim_b;
+    }
+}
+
+/* app.c app_sysex: a SysEx frame from USB (the bytes between F0 and F7); 1 = ours, taken */
 int bs_usb_sysex(const uint8_t *p, uint32_t n)
 {
     uint8_t m[6];
-    if (n != 4u || p[0] != 0x7Du || p[1] != 'F' || p[2] != 'S')
+    if (n < 4u || p[0] != 0x7Du || p[1] != 'F' || p[2] != 'S')
         return 0;
+    if (n > 4u) {                                /* Big Knobs, MASTER, a press */
+        bs_panel_in(p, n);
+        return 1;
+    }
     m[0] = 0xF0; m[1] = 0x7D; m[2] = 'F'; m[3] = 'S'; m[4] = p[3]; m[5] = 0xF7;
     sm_sysex(m, 6);                              /* (a new viewer, or 01: sm_take_full_request, the whole screen) */
     return 1;
@@ -123,6 +199,7 @@ void bs_service(void)
     static char name[24];
     uint32_t now = plat_ms();
     sm_poll(now, bs_send);
+    bs_panel_service(now);
     if (sm_on()) {
         const char *v = TONE_NAME[set.tone & 3];
         uint32_t i = 0, k;

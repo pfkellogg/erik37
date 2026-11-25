@@ -225,9 +225,11 @@ static void led_pos_init(void)
                     led_pos[id] = (uint8_t)((p << 3) | r);
     }
 }
+void bs_lights(uint32_t buttons, uint32_t keys, uint32_t dim);   /* FM-1 Big Screen's Key Lights (app/big_screen.c) */
 /* the dim ones: felucca-bsp's glow, a short pulse on every scan frame, in two strengths (fm1_led_dim_level) */
 void plat_lights(uint32_t buttons, uint32_t keys, uint32_t dim_buttons, uint32_t dim_keys, int glow)
 {
+    bs_lights(buttons | (buttons & LED_PLAY_GREEN ? 1u << B_PLAY : 0u), keys, dim_buttons);
     static int level = -1;
     uint8_t nl[FM1_NCOL] = {0}, dl[FM1_NCOL] = {0};
     uint32_t i, c;
